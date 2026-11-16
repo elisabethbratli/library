@@ -1,0 +1,14 @@
+# Optional: keep state in Scaleway Object Storage instead of locally (state contains the generated passwords).
+# Copy to backend.tf, create the bucket first, then run `tofu init -migrate-state`.
+terraform {
+  backend "s3" {
+    bucket                      = "my-library-tfstate"
+    key                         = "library/terraform.tfstate"
+    region                      = "fr-par"
+    endpoints                   = { s3 = "https://s3.fr-par.scw.cloud" }
+    skip_credentials_validation = true
+    skip_region_validation      = true
+    skip_requesting_account_id  = true
+    skip_s3_checksum            = true
+  }
+}
