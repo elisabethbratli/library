@@ -45,12 +45,11 @@ resource "scaleway_container" "api" {
   registry_image     = "${scaleway_registry_namespace.main.endpoint}/api:${var.image_tag}"
   port               = 8080
   cpu_limit          = 280
-  memory_limit       = 256
+  memory_limit_bytes = 268435456
   min_scale          = 0 # scale to zero when idle (cheap; first request is slow)
   max_scale          = 1
   privacy            = "public"
   protocol           = "http1"
-  deploy             = true
   private_network_id = scaleway_vpc_private_network.main.id
 
   secret_environment_variables = {
@@ -67,20 +66,19 @@ resource "scaleway_container" "api" {
 }
 
 resource "scaleway_container" "web" {
-  name           = "${var.name}-web"
-  namespace_id   = scaleway_container_namespace.main.id
-  registry_image = "${scaleway_registry_namespace.main.endpoint}/web:${var.image_tag}"
-  port           = 8080
-  cpu_limit      = 140
-  memory_limit   = 128
-  min_scale      = 0
-  max_scale      = 1
-  privacy        = "public"
-  protocol       = "http1"
-  deploy         = true
+  name               = "${var.name}-web"
+  namespace_id       = scaleway_container_namespace.main.id
+  registry_image     = "${scaleway_registry_namespace.main.endpoint}/web:${var.image_tag}"
+  port               = 8080
+  cpu_limit          = 140
+  memory_limit_bytes = 134217728
+  min_scale          = 0
+  max_scale          = 1
+  privacy            = "public"
+  protocol           = "http1"
 
   environment_variables = {
-    API_UPSTREAM = "https://${scaleway_container.api.domain_name}"
-    API_HOST     = scaleway_container.api.domain_name
+    API_UPSTREAM = trimsuffix(scaleway_container.api.public_endpoint, "/")
+    API_HOST     = trimprefix(trimsuffix(scaleway_container.api.public_endpoint, "/"), "https://")
   }
 }

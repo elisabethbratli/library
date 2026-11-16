@@ -2,8 +2,8 @@ output "registry_endpoint" {
   value = scaleway_registry_namespace.main.endpoint
 }
 output "web_url" {
-  value = "https://${scaleway_container.web.domain_name}"
+  value = scaleway_container.web.public_endpoint
 }
 output "api_url" {
-  value = "https://${scaleway_container.api.domain_name}"
+  value = scaleway_container.api.public_endpoint
 }
