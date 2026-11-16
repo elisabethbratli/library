@@ -1,9 +1,0 @@
-bin/
-obj/
-node_modules/
-dist/
-.terraform/
-*.tfstate*
-*.tfvars
-!*.tfvars.example
-.env
