@@ -1,5 +1,12 @@
 using Library.Api.Data;
 using Library.Api.Models;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,12 +19,44 @@ builder.Services.AddDbContext<LibraryDb>(o =>
 var origins = builder.Configuration["AllowedOrigins"]?.Split(',', StringSplitOptions.RemoveEmptyEntries);
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 {
-    if (origins is { Length: > 0 }) p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+    if (origins is { Length: > 0 }) p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     else p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
 }));
 
+// --- Simple shared-password auth: POST /api/login sets an HttpOnly session cookie ---
+var password = builder.Configuration["Auth:Password"];
+if (string.IsNullOrEmpty(password))
+    throw new InvalidOperationException("Auth__Password must be set");
+var passwordHash = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(o =>
+    {
+        o.Cookie.Name = "library_session";
+        o.Cookie.HttpOnly = true;
+        o.Cookie.SameSite = SameSiteMode.Lax;
+        o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        o.ExpireTimeSpan = TimeSpan.FromDays(30);
+        o.SlidingExpiration = true;
+        // APIs should answer 401/403, not redirect to a login page
+        o.Events.OnRedirectToLogin = c => { c.Response.StatusCode = 401; return Task.CompletedTask; };
+        o.Events.OnRedirectToAccessDenied = c => { c.Response.StatusCode = 403; return Task.CompletedTask; };
+    });
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser().Build());
+// Brute-force protection: login attempts are limited globally (the API only sees the proxy's address)
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = 429;
+    o.AddFixedWindowLimiter("login", l => { l.PermitLimit = 10; l.Window = TimeSpan.FromMinutes(1); l.QueueLimit = 0; });
+});
+
 var app = builder.Build();
 app.UseCors();
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Create schema on startup. For a small home app this is enough; switch to EF migrations if the schema grows.
 using (var scope = app.Services.CreateScope())
@@ -26,9 +65,28 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
 }
 
-app.MapGet("/healthz", () => Results.Ok("ok"));
+app.MapGet("/healthz", () => Results.Ok("ok")).AllowAnonymous();
 
 var api = app.MapGroup("/api");
+
+api.MapPost("/login", async (LoginInput i, HttpContext ctx) =>
+{
+    var given = SHA256.HashData(Encoding.UTF8.GetBytes(i.Password ?? ""));
+    if (!CryptographicOperations.FixedTimeEquals(given, passwordHash))
+        return Results.Json(new { error = "Wrong password" }, statusCode: 401);
+    var principal = new ClaimsPrincipal(new ClaimsIdentity(
+        [new Claim(ClaimTypes.Name, "owner")], CookieAuthenticationDefaults.AuthenticationScheme));
+    await ctx.SignInAsync(principal, new AuthenticationProperties { IsPersistent = true });
+    return Results.NoContent();
+}).AllowAnonymous().RequireRateLimiting("login");
+
+api.MapPost("/logout", async (HttpContext ctx) =>
+{
+    await ctx.SignOutAsync();
+    return Results.NoContent();
+}).AllowAnonymous();
+
+api.MapGet("/me", () => Results.NoContent()); // 204 if logged in, 401 otherwise
 
 static BookDto ToDto(Book b) => new(b.Id, b.Title, b.Author, b.Isbn, b.PublishedYear, b.Description, b.CoverUrl,
     b.AddedAt, b.Reviews.Count == 0 ? null : b.Reviews.Average(r => r.Rating), b.Reviews.Count);

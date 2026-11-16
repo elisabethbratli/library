@@ -28,3 +28,4 @@ public record ReviewDto(int Id, int Rating, string? Text, DateTime CreatedAt);
 public record BookDto(int Id, string Title, string Author, string? Isbn, int? PublishedYear,
     string? Description, string? CoverUrl, DateTime AddedAt, double? AverageRating, int ReviewCount);
 public record BookDetailDto(BookDto Book, List<ReviewDto> Reviews);
+public record LoginInput(string? Password);

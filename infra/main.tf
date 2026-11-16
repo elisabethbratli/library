@@ -14,6 +14,12 @@ resource "random_password" "db" {
   special = false
 }
 
+# Shared password for the web UI (read it with: tofu output -raw app_password)
+resource "random_password" "app" {
+  length  = 20
+  special = false
+}
+
 resource "scaleway_rdb_instance" "main" {
   name           = var.name
   engine         = "PostgreSQL-16"
@@ -53,6 +59,7 @@ resource "scaleway_container" "api" {
   private_network_id = scaleway_vpc_private_network.main.id
 
   secret_environment_variables = {
+    "Auth__Password" = random_password.app.result
     "ConnectionStrings__Library" = join(";", [
       "Host=${scaleway_rdb_instance.main.private_network[0].ip}",
       "Port=${scaleway_rdb_instance.main.private_network[0].port}",

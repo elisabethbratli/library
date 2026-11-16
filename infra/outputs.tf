@@ -7,3 +7,7 @@ output "web_url" {
 output "api_url" {
   value = scaleway_container.api.public_endpoint
 }
+output "app_password" {
+  value     = random_password.app.result
+  sensitive = true
+}

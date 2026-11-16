@@ -8,6 +8,7 @@ services:
     build: backend/Library.Api
     environment:
       ConnectionStrings__Library: Host=db;Database=library;Username=library;Password=library
+      Auth__Password: library   # local dev password
     depends_on: [db]
   web:
     build: frontend
