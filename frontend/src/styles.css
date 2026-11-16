@@ -1,0 +1,21 @@
+:root { font-family: system-ui, sans-serif; color: #222; background: #faf7f2; }
+body { margin: 0; }
+main { max-width: 960px; margin: 0 auto; padding: 1rem; }
+.top { display: flex; justify-content: space-between; align-items: center; padding: .75rem 1rem; background: #3b2f2f; }
+.brand { color: #fff; text-decoration: none; font-weight: 700; font-size: 1.2rem; }
+.btn { background: #b5651d; color: #fff; border: 0; padding: .5rem .9rem; border-radius: 6px; text-decoration: none; cursor: pointer; font-size: 1rem; }
+.btn.danger { background: #a33; }
+.link { background: none; border: 0; color: #a33; cursor: pointer; padding: 0; }
+.muted { color: #777; }
+.error { color: #a33; }
+.search { width: 100%; padding: .6rem; font-size: 1rem; box-sizing: border-box; margin-bottom: 1rem; }
+.grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
+.card { display: flex; flex-direction: column; gap: .25rem; text-decoration: none; color: inherit; background: #fff; padding: .6rem; border-radius: 8px; height: 100%; box-shadow: 0 1px 3px #0002; }
+.card img, .cover-ph { width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: 4px; background: #eee; display: grid; place-items: center; font-size: 2rem; }
+.form { display: flex; flex-direction: column; gap: .75rem; max-width: 480px; }
+.form label { display: flex; flex-direction: column; gap: .25rem; }
+.form input, .form textarea, .form select { padding: .5rem; font: inherit; }
+.detail { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.detail img { width: 180px; border-radius: 6px; }
+.reviews { list-style: none; padding: 0; }
+.reviews li { background: #fff; padding: .75rem; border-radius: 8px; margin-bottom: .5rem; }
